@@ -26,7 +26,7 @@ jobs:
       uses: docker/build-push-action@v1
       with:
         dockerfile: build.Dockerfile
-        repository: ${{ vars.GITHUB_REPOSITORY_OWNER }}/speculos-builder
+        repository: blooo-io/speculos-builder
         registry: ghcr.io
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
