@@ -201,7 +201,7 @@ jobs:
       - name: Build and publish to GitHub Packages
         uses: docker/build-push-action@v1
         with:
-          repository: ${{ github.organization }}/speculos
+          repository: blooo-io/speculos
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
