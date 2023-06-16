@@ -26,7 +26,7 @@ jobs:
       uses: docker/build-push-action@v1
       with:
         dockerfile: build.Dockerfile
-        repository: ledgerhq/speculos-builder
+        repository: ${{ github.organization }}/speculos-builder
         registry: ghcr.io
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}

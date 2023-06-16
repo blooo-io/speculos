@@ -74,7 +74,7 @@ jobs:
     - name: Run and test Speculos docker
       uses: addnab/docker-run-action@v3
       with:
-        image: ledgerhq/speculos:test
+        image: ${{ github.organization}}/speculos:test
         options: -v ${{ github.workspace }}/app:/app
         run: |
             apt-get update && apt-get install -y gcc
