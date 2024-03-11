@@ -13,9 +13,13 @@
 #include <unistd.h>
 
 #include "emulate.h"
+#include "environment.h"
+#include "fonts.h"
 #include "svc.h"
 
 #define LOAD_ADDR     ((void *)0x40000000)
+#define LINK_RAM_ADDR (0xda7a0000)
+#define LOAD_RAM_ADDR (0x50000000)
 #define MAX_APP       16
 #define MAIN_APP_NAME "main"
 
@@ -32,6 +36,8 @@ struct elf_info_s {
   unsigned long svc_call_addr;
   unsigned long svc_cx_call_addr;
   unsigned long text_load_addr;
+  unsigned long fonts_addr;
+  unsigned long fonts_size;
 };
 
 struct app_s {
@@ -126,6 +132,8 @@ static int open_app(char *name, char *filename, struct elf_info_s *elf)
   apps[napp].elf.svc_call_addr = elf->svc_call_addr;
   apps[napp].elf.svc_cx_call_addr = elf->svc_cx_call_addr;
   apps[napp].elf.text_load_addr = elf->text_load_addr;
+  apps[napp].elf.fonts_addr = elf->fonts_addr;
+  apps[napp].elf.fonts_size = elf->fonts_size;
 
   napp++;
 
@@ -294,6 +302,11 @@ static void *load_app(char *name)
   data_addr = get_lower_page_aligned_addr(app->elf.stack_addr);
   data_size = get_upper_page_aligned_size(
       app->elf.stack_size + app->elf.stack_addr - (unsigned long)data_addr);
+  if (app->elf.stack_addr == LINK_RAM_ADDR) {
+    // Emulate RAM relocation
+    data_addr = (void *)LOAD_RAM_ADDR;
+    data_size = get_upper_page_aligned_size(app->elf.stack_size);
+  }
 
   /* load code
    * map an extra page in case the _install_params are mapped in the beginning
@@ -419,31 +432,17 @@ static int load_fonts(char *fonts_path)
     warnx("failed to open \"%s\"", fonts_path);
     return -1;
   }
-  fprintf(stderr, "[*] loading fonts from \"%s\"\n", fonts_path);
+
+  int load_size = lseek(fd, 0, SEEK_END);
+  lseek(fd, 0L, SEEK_SET);
+
+  fprintf(stderr, "[*] loading fonts from \"%s\" (%d)\n", fonts_path,
+          load_size);
 
   int flags = MAP_PRIVATE | MAP_FIXED;
   int prot = PROT_READ;
-  int load_addr;
-  int load_size;
+  int load_addr = STAX_FONTS_ARRAY_ADDR;
 
-  if (sdk_version == SDK_API_LEVEL_1 || sdk_version == SDK_API_LEVEL_3 ||
-      sdk_version == SDK_API_LEVEL_5) {
-    load_addr = 0x00805000;
-    load_size = 20480;
-  } else if (sdk_version == SDK_API_LEVEL_7) {
-    load_addr = 0x00805000;
-    load_size = 45056;
-  } else if ((sdk_version == SDK_API_LEVEL_8 ||
-              sdk_version == SDK_API_LEVEL_9 ||
-              sdk_version == SDK_API_LEVEL_10 ||
-              sdk_version == SDK_API_LEVEL_11)) {
-    load_addr = 0x00805000;
-    load_size = 40960;
-  } else {
-    warn("Invalid sdk version for fonts");
-    close(fd);
-    return -1;
-  }
   void *p = mmap((void *)load_addr, load_size, prot, flags, fd, 0);
   fprintf(stderr, "[*] loaded fonts at %p\n", p);
 
@@ -533,10 +532,18 @@ static int run_app(char *name, unsigned long *parameters)
 
   app = get_current_app();
 
+  // Parse fonts and build bitmap -> character table
+  parse_fonts(memory.code, app->elf.text_load_addr, app->elf.fonts_addr,
+              app->elf.fonts_size);
+
   /* thumb mode */
   f = (void *)((unsigned long)p | 1);
   stack_end = app->elf.stack_addr;
-  stack_start = app->elf.stack_addr + app->elf.stack_size;
+  if (app->elf.stack_addr == LINK_RAM_ADDR) {
+    // Emulate RAM relocation
+    stack_end = LOAD_RAM_ADDR;
+  }
+  stack_start = stack_end + app->elf.stack_size;
 
   asm volatile("mov r0, %2\n"
                "mov r9, %1\n"
@@ -589,11 +596,12 @@ static char *parse_app_infos(char *arg, char **filename, struct elf_info_s *elf)
     err(1, "strdup");
   }
 
-  ret = sscanf(arg, "%[^:]:%[^:]:0x%lx:0x%lx:0x%lx:0x%lx:0x%lx:0x%lx:0x%lx",
-               libname, *filename, &elf->load_offset, &elf->load_size,
-               &elf->stack_addr, &elf->stack_size, &elf->svc_call_addr,
-               &elf->svc_cx_call_addr, &elf->text_load_addr);
-  if (ret != 9) {
+  ret = sscanf(
+      arg, "%[^:]:%[^:]:0x%lx:0x%lx:0x%lx:0x%lx:0x%lx:0x%lx:0x%lx:0x%lx:0x%lx",
+      libname, *filename, &elf->load_offset, &elf->load_size, &elf->stack_addr,
+      &elf->stack_size, &elf->svc_call_addr, &elf->svc_cx_call_addr,
+      &elf->text_load_addr, &elf->fonts_addr, &elf->fonts_size);
+  if (ret != 11) {
     warnx("failed to parse app infos (\"%s\", %d)", arg, ret);
     free(libname);
     free(*filename);
@@ -625,25 +633,15 @@ static int load_apps(int argc, char *argv[])
 
 static sdk_version_t apilevelstr2sdkver(const char *api_level_arg)
 {
-  if (strcmp("1", api_level_arg) == 0) {
-    return SDK_API_LEVEL_1;
-  } else if (strcmp("3", api_level_arg) == 0) {
-    return SDK_API_LEVEL_3;
-  } else if (strcmp("5", api_level_arg) == 0) {
-    return SDK_API_LEVEL_5;
-  } else if (strcmp("7", api_level_arg) == 0) {
-    return SDK_API_LEVEL_7;
-  } else if (strcmp("8", api_level_arg) == 0) {
-    return SDK_API_LEVEL_8;
-  } else if (strcmp("9", api_level_arg) == 0) {
-    return SDK_API_LEVEL_9;
-  } else if (strcmp("10", api_level_arg) == 0) {
-    return SDK_API_LEVEL_10;
-  } else if (strcmp("11", api_level_arg) == 0) {
-    return SDK_API_LEVEL_11;
-  } else {
+  int api_level = atoi(api_level_arg);
+  int _sdk_version = api_level - 1 + SDK_API_LEVEL_1;
+
+  if ((api_level <= 0) || (_sdk_version >= SDK_COUNT)) {
+    warnx("Invalid api level (\"%s\")", api_level_arg);
     return SDK_COUNT;
   }
+
+  return _sdk_version;
 }
 
 static sdk_version_t sdkstr2sdkver(const char *sdk_arg)
@@ -751,14 +749,15 @@ int main(int argc, char *argv[])
     if (sdk_version == SDK_COUNT) {
       errx(1, "invalid SDK api_level: %s", api_level);
     }
+    fprintf(stderr, "[*] using API_LEVEL version %s on %s\n", api_level,
+            model_str);
   } else {
     sdk_version = sdkstr2sdkver(sdk);
     if (sdk_version == SDK_COUNT) {
       errx(1, "invalid SDK version: %s", sdk);
     }
+    fprintf(stderr, "[*] using SDK version %s on %s\n", sdk, model_str);
   }
-
-  fprintf(stderr, "[*] using SDK version %u on %s\n", sdk_version, model_str);
 
   switch (hw_model) {
   case MODEL_NANO_S:
@@ -770,7 +769,7 @@ int main(int argc, char *argv[])
   case MODEL_NANO_X:
     if (sdk_version != SDK_NANO_X_1_2 && sdk_version != SDK_NANO_X_2_0 &&
         sdk_version != SDK_NANO_X_2_0_2 && sdk_version != SDK_API_LEVEL_1 &&
-        sdk_version != SDK_API_LEVEL_5) {
+        sdk_version != SDK_API_LEVEL_5 && sdk_version != SDK_API_LEVEL_12) {
       errx(1, "invalid SDK version for the Ledger Nano X");
     }
     break;
@@ -781,7 +780,8 @@ int main(int argc, char *argv[])
     break;
   case MODEL_NANO_SP:
     if (sdk_version != SDK_NANO_SP_1_0 && sdk_version != SDK_NANO_SP_1_0_3 &&
-        sdk_version != SDK_API_LEVEL_1 && sdk_version != SDK_API_LEVEL_5) {
+        sdk_version != SDK_API_LEVEL_1 && sdk_version != SDK_API_LEVEL_5 &&
+        sdk_version != SDK_API_LEVEL_12) {
       errx(1, "invalid SDK version for the Ledger NanoSP");
     }
     break;
@@ -789,7 +789,9 @@ int main(int argc, char *argv[])
     if (sdk_version != SDK_API_LEVEL_1 && sdk_version != SDK_API_LEVEL_3 &&
         sdk_version != SDK_API_LEVEL_5 && sdk_version != SDK_API_LEVEL_7 &&
         sdk_version != SDK_API_LEVEL_8 && sdk_version != SDK_API_LEVEL_9 &&
-        sdk_version != SDK_API_LEVEL_10 && sdk_version != SDK_API_LEVEL_11) {
+        sdk_version != SDK_API_LEVEL_10 && sdk_version != SDK_API_LEVEL_11 &&
+        sdk_version != SDK_API_LEVEL_12 && sdk_version != SDK_API_LEVEL_13 &&
+        sdk_version != SDK_API_LEVEL_14 && sdk_version != SDK_API_LEVEL_15) {
       errx(1, "invalid SDK version for the Ledger Stax");
     }
     break;
@@ -808,14 +810,13 @@ int main(int argc, char *argv[])
   if (sdk_version == SDK_NANO_S_2_0 || sdk_version == SDK_NANO_S_2_1 ||
       sdk_version == SDK_NANO_X_2_0 || sdk_version == SDK_NANO_X_2_0_2 ||
       sdk_version == SDK_NANO_SP_1_0 || sdk_version == SDK_NANO_SP_1_0_3 ||
-      sdk_version == SDK_API_LEVEL_1 || sdk_version == SDK_API_LEVEL_3 ||
-      sdk_version == SDK_API_LEVEL_5 || sdk_version == SDK_API_LEVEL_7 ||
-      sdk_version == SDK_API_LEVEL_8 || sdk_version == SDK_API_LEVEL_9 ||
-      sdk_version == SDK_API_LEVEL_10 || sdk_version == SDK_API_LEVEL_11) {
+      ((sdk_version >= SDK_API_LEVEL_1) && (sdk_version < SDK_COUNT))) {
     if (load_cxlib(cxlib_path) != 0) {
       return 1;
     }
   }
+
+  init_environment();
 
   if (hw_model == MODEL_STAX && fonts_path) {
     if (load_fonts(fonts_path) != 0) {

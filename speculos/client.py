@@ -1,7 +1,3 @@
-from contextlib import contextmanager
-from PIL import Image, ImageChops
-from typing import Generator, List, Optional, Tuple, Type
-from types import TracebackType
 import json
 import logging
 import requests
@@ -9,6 +5,11 @@ import socket
 import sys
 import subprocess
 import time
+from contextlib import contextmanager
+from PIL import Image, ImageChops
+from requests import Response
+from typing import Generator, List, Optional, Tuple, Type
+from types import TracebackType
 
 logger = logging.getLogger("speculos-client")
 logger.setLevel(logging.INFO)
@@ -70,7 +71,7 @@ class Api:
         self.api_url = api_url
         self.timeout = 2000
         self.session = requests.Session()
-        self.stream = None
+        self.stream: Optional[Response] = None
 
     def open_stream(self) -> None:
         assert self.stream is None
@@ -94,6 +95,7 @@ class Api:
 
         https://html.spec.whatwg.org/multipage/server-sent-events.html#parsing-an-event-stream
         """
+        assert self.stream is not None
         data = b""
         while True:
             line = self.stream.raw.readline()
@@ -129,15 +131,26 @@ class Api:
         with self.session.post(f"{self.api_url}/finger", json=data) as response:
             check_status_code(response, "/finger")
 
+    def ticker_ctl(self, action: str) -> None:
+        data = {"action": action}
+        with self.session.post(f"{self.api_url}/ticker", json=data) as response:
+            check_status_code(response, "/ticker")
+
     def get_screenshot(self) -> bytes:
         with self.session.get(f"{self.api_url}/screenshot") as response:
             check_status_code(response, "/screenshot")
             return response.content
 
-    def _apdu_exchange(self, data: bytes) -> bytes:
-        with self.session.post(f"{self.api_url}/apdu", json={"data": data.hex()}) as response:
-            apdu_response = ApduResponse(response)
-            return apdu_response.receive()
+    def _apdu_exchange(self, data: bytes, tick_timeout: int = 5 * 60 * 10) -> bytes:
+        try:
+            data_payload = {"data": data.hex(), "tick_timeout": tick_timeout}
+            with self.session.post(f"{self.api_url}/apdu", json=data_payload) as response:
+                apdu_response = ApduResponse(response)
+                return apdu_response.receive()
+
+        # TimeoutError exception in exchange function raises ChunkedEncodingError exception
+        except requests.exceptions.ChunkedEncodingError:
+            raise TimeoutError()
 
     def _apdu_exchange_nowait(self, data: bytes) -> requests.Response:
         return self.session.post(f"{self.api_url}/apdu", json={"data": data.hex()}, stream=True)
@@ -232,9 +245,11 @@ class SpeculosClient(Api, SpeculosInstance):
     ) -> None:
         self.stop()
 
-    def apdu_exchange(self, cla: int, ins: int, data: bytes = b"", p1: int = 0, p2: int = 0) -> bytes:
+    def apdu_exchange(
+            self, cla: int, ins: int, data: bytes = b"", p1: int = 0, p2: int = 0,
+            tick_timeout: int = 5 * 60 * 10) -> bytes:
         apdu = bytes([cla, ins, p1, p2, len(data)]) + data
-        return Api._apdu_exchange(self, apdu)
+        return Api._apdu_exchange(self, apdu, tick_timeout)
 
     @contextmanager
     def apdu_exchange_nowait(

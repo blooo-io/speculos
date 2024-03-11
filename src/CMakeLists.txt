@@ -31,6 +31,7 @@ add_library(emu
         bolos/cx_weierstrass.c
         bolos/cxlib.c
         bolos/bagl.c
+        bolos/fonts_info.c
         bolos/nbgl.c
         bolos/nbgl_rle.c
         bolos/touch.c
@@ -55,6 +56,7 @@ add_library(emu
         emulate_blue_2.2.5.c
         emulate_lnsp_1.0.c
         emulate_unified_sdk.c
+        environment.c
         svc.c)
 
 add_dependencies(emu openssl)
