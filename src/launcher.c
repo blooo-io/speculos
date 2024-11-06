@@ -75,6 +75,7 @@ static size_t extra_rampage_size;
 
 sdk_version_t sdk_version = SDK_COUNT;
 hw_model_t hw_model = MODEL_COUNT;
+bool use_nbgl = false;
 
 static struct app_s *current_app;
 
@@ -242,6 +243,10 @@ int replace_current_code(struct app_s *app)
 
   memory.code_size = app->elf.load_size;
   current_app = app;
+
+  // Parse fonts and build bitmap -> character table
+  parse_fonts(memory.code, app->elf.text_load_addr, app->elf.fonts_addr,
+              app->elf.fonts_size, use_nbgl);
 
   return 0;
 }
@@ -411,6 +416,10 @@ static void *load_app(char *name)
 
   current_app = app;
 
+  // Parse fonts and build bitmap -> character table
+  parse_fonts(memory.code, app->elf.text_load_addr, app->elf.fonts_addr,
+              app->elf.fonts_size, use_nbgl);
+
   return code;
 
 error:
@@ -441,7 +450,25 @@ static int load_fonts(char *fonts_path)
 
   int flags = MAP_PRIVATE | MAP_FIXED;
   int prot = PROT_READ;
-  int load_addr = STAX_FONTS_ARRAY_ADDR;
+  int load_addr = 0;
+
+  switch (hw_model) {
+  case MODEL_STAX:
+    load_addr = STAX_FONTS_ARRAY_ADDR;
+    break;
+  case MODEL_FLEX:
+    load_addr = FLEX_FONTS_ARRAY_ADDR;
+    break;
+  case MODEL_NANO_SP:
+    load_addr = NANOSP_FONTS_ARRAY_ADDR;
+    break;
+  case MODEL_NANO_X:
+    load_addr = NANOX_FONTS_ARRAY_ADDR;
+    break;
+  default:
+    warnx("hw_model %u not supported", hw_model);
+    return -1;
+  }
 
   void *p = mmap((void *)load_addr, load_size, prot, flags, fd, 0);
   fprintf(stderr, "[*] loaded fonts at %p\n", p);
@@ -531,10 +558,6 @@ static int run_app(char *name, unsigned long *parameters)
   }
 
   app = get_current_app();
-
-  // Parse fonts and build bitmap -> character table
-  parse_fonts(memory.code, app->elf.text_load_addr, app->elf.fonts_addr,
-              app->elf.fonts_size);
 
   /* thumb mode */
   f = (void *)((unsigned long)p | 1);
@@ -668,7 +691,7 @@ static void usage(char *argv0)
   fprintf(stderr, "\n\
   -r <rampage:ramsize>: Address and size of extra ram (both in hex) to map app.elf memory.\n\
   -m <model>:           Optional string representing the device model being emula-\n\
-                        ted. Currently supports \"nanos\", \"nanosp\", \"nanox\", \"stax\" and \"blue\".\n\
+                        ted. Currently supports \"nanos\", \"nanosp\", \"nanox\", \"stax\", \"flex\" and \"blue\".\n\
   -k <sdk_version>:     A string representing the SDK version to be used, like \"1.6\".\n\
   -a <api_level>:       A string representing the SDK api level to be used, like \"1\".\n");
   exit(EXIT_FAILURE);
@@ -726,6 +749,8 @@ int main(int argc, char *argv[])
         hw_model = MODEL_NANO_SP;
       } else if (strcmp(optarg, "stax") == 0) {
         hw_model = MODEL_STAX;
+      } else if (strcmp(optarg, "flex") == 0) {
+        hw_model = MODEL_FLEX;
       } else {
         errx(1, "invalid model \"%s\"", optarg);
       }
@@ -769,7 +794,8 @@ int main(int argc, char *argv[])
   case MODEL_NANO_X:
     if (sdk_version != SDK_NANO_X_1_2 && sdk_version != SDK_NANO_X_2_0 &&
         sdk_version != SDK_NANO_X_2_0_2 && sdk_version != SDK_API_LEVEL_1 &&
-        sdk_version != SDK_API_LEVEL_5 && sdk_version != SDK_API_LEVEL_12) {
+        sdk_version != SDK_API_LEVEL_5 && sdk_version != SDK_API_LEVEL_12 &&
+        sdk_version != SDK_API_LEVEL_18 && sdk_version != SDK_API_LEVEL_22) {
       errx(1, "invalid SDK version for the Ledger Nano X");
     }
     break;
@@ -781,7 +807,8 @@ int main(int argc, char *argv[])
   case MODEL_NANO_SP:
     if (sdk_version != SDK_NANO_SP_1_0 && sdk_version != SDK_NANO_SP_1_0_3 &&
         sdk_version != SDK_API_LEVEL_1 && sdk_version != SDK_API_LEVEL_5 &&
-        sdk_version != SDK_API_LEVEL_12) {
+        sdk_version != SDK_API_LEVEL_12 && sdk_version != SDK_API_LEVEL_18 &&
+        sdk_version != SDK_API_LEVEL_22) {
       errx(1, "invalid SDK version for the Ledger NanoSP");
     }
     break;
@@ -791,8 +818,17 @@ int main(int argc, char *argv[])
         sdk_version != SDK_API_LEVEL_8 && sdk_version != SDK_API_LEVEL_9 &&
         sdk_version != SDK_API_LEVEL_10 && sdk_version != SDK_API_LEVEL_11 &&
         sdk_version != SDK_API_LEVEL_12 && sdk_version != SDK_API_LEVEL_13 &&
-        sdk_version != SDK_API_LEVEL_14 && sdk_version != SDK_API_LEVEL_15) {
+        sdk_version != SDK_API_LEVEL_14 && sdk_version != SDK_API_LEVEL_15 &&
+        sdk_version != SDK_API_LEVEL_20 && sdk_version != SDK_API_LEVEL_21 &&
+        sdk_version != SDK_API_LEVEL_22) {
       errx(1, "invalid SDK version for the Ledger Stax");
+    }
+    break;
+  case MODEL_FLEX:
+    if (sdk_version != SDK_API_LEVEL_18 && sdk_version != SDK_API_LEVEL_19 &&
+        sdk_version != SDK_API_LEVEL_20 && sdk_version != SDK_API_LEVEL_21 &&
+        sdk_version != SDK_API_LEVEL_22) {
+      errx(1, "invalid SDK version for the Ledger Flex");
     }
     break;
   default:
@@ -818,10 +854,11 @@ int main(int argc, char *argv[])
 
   init_environment();
 
-  if (hw_model == MODEL_STAX && fonts_path) {
+  if (fonts_path) {
     if (load_fonts(fonts_path) != 0) {
       return 1;
     }
+    use_nbgl = true;
   }
 
   if (setup_signals() != 0) {

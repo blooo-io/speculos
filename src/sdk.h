@@ -30,6 +30,13 @@ typedef enum {
   SDK_API_LEVEL_13,
   SDK_API_LEVEL_14,
   SDK_API_LEVEL_15,
+  SDK_API_LEVEL_16,
+  SDK_API_LEVEL_17,
+  SDK_API_LEVEL_18,
+  SDK_API_LEVEL_19,
+  SDK_API_LEVEL_20,
+  SDK_API_LEVEL_21,
+  SDK_API_LEVEL_22,
   SDK_COUNT
 } sdk_version_t;
 
@@ -41,6 +48,7 @@ typedef enum {
   MODEL_NANO_X,
   MODEL_BLUE,
   MODEL_STAX,
+  MODEL_FLEX,
   MODEL_COUNT
 } hw_model_t;
 
