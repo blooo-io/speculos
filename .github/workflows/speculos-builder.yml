@@ -116,4 +116,4 @@ jobs:
 
       - name: Inspect image
         run: |
-          docker buildx imagetools inspect ghcr.io/ledgerhq/speculos-builder:latest
+          docker buildx imagetools inspect ghcr.io/blooo-io/speculos-builder:latest

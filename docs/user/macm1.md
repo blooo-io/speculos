@@ -7,13 +7,13 @@ Edit the `Dockerfile` and perform the following modification
 Replace line #1
 
 ```
-FROM ghcr.io/ledgerhq/speculos-builder:latest AS builder
+FROM ghcr.io/blooo-io/speculos-builder:latest AS builder
 ```
 
 with
 
 ```
-FROM ghcr.io/ledgerhq/speculos-builder-aarch64:latest AS builder
+FROM ghcr.io/blooo-io/speculos-builder-aarch64:latest AS builder
 ```
 
 Then build the Docker container image with the following command:
