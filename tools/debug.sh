@@ -34,10 +34,6 @@ EOF
     cat >>/tmp/x.gdb<<EOF
 define connect
 set architecture arm
-
-directory $GDB_DIRECTORY_LIST
-tui enable
-
 set osabi GNU/Linux
 target remote 127.0.0.1:1234
 handle SIGILL nostop pass noprint
