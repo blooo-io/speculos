@@ -21,7 +21,7 @@ env:
 jobs:
   coverage:
     name: Code coverage
-    runs-on: ubuntu-24.04-arm
+    runs-on: ubuntu-latest
     container:
       image: docker://ghcr.io/ledgerhq/speculos-builder:latest
     steps:
@@ -51,7 +51,7 @@ jobs:
 
   build:
     name: Clone, build, test
-    runs-on: ubuntu-24.04-arm
+    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
@@ -264,7 +264,7 @@ jobs:
       with:
         labels: ${{ steps.meta.outputs.labels }}
         platforms: ${{ matrix.platform }}
-        outputs: type=image,name=ghcr.io/blooo-io/speculos,push-by-digest=true,name-canonical=true,push=${{ env.PUSH_FLAG }}
+        outputs: type=image,name=ghcr.io/ledgerhq/speculos,push-by-digest=true,name-canonical=true,push=${{ env.PUSH_FLAG }}
 
     - name: Export digest
       run: |
@@ -284,7 +284,7 @@ jobs:
     if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/')) }}
     needs:
       - deploy_docker
-    runs-on: ubuntu-24.04-arm
+    runs-on: ubuntu-latest
     steps:
       - name: Download digests
         uses: actions/download-artifact@v4
@@ -304,7 +304,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v4
         with:
-          images: ghcr.io/blooo-io/speculos
+          images: ghcr.io/ledgerhq/speculos
           tags: |
             type=raw,value=${{ github.sha }}
             type=ref,event=branch
@@ -319,8 +319,8 @@ jobs:
         working-directory: /tmp/digests
         run: |
           docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
-            $(printf 'ghcr.io/blooo-io/speculos@sha256:%s ' *)
+            $(printf 'ghcr.io/ledgerhq/speculos@sha256:%s ' *)
 
       - name: Inspect image
         run: |
-          docker buildx imagetools inspect ghcr.io/blooo-io/speculos:latest
+          docker buildx imagetools inspect ghcr.io/ledgerhq/speculos:latest
