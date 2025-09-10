@@ -101,11 +101,11 @@
 <h2>How to build the Docker image<a class="headerlink" href="#how-to-build-the-docker-image" title="Permalink to this heading"></a></h2>
 <p>Edit the <code class="docutils literal notranslate"><span class="pre">Dockerfile</span></code> and perform the following modification</p>
 <p>Replace line #1</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">FROM</span> <span class="n">ghcr</span><span class="o">.</span><span class="n">io</span><span class="o">/</span><span class="n">ledgerhq</span><span class="o">/</span><span class="n">speculos</span><span class="o">-</span><span class="n">builder</span><span class="p">:</span><span class="n">latest</span> <span class="n">AS</span> <span class="n">builder</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">FROM</span> <span class="n">ghcr</span><span class="o">.</span><span class="n">io</span><span class="o">/</span><span class="n">blooo</span><span class="o">-</span><span class="n">io</span><span class="o">/</span><span class="n">speculos</span><span class="o">-</span><span class="n">builder</span><span class="p">:</span><span class="n">latest</span> <span class="n">AS</span> <span class="n">builder</span>
 </pre></div>
 </div>
 <p>with</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">FROM</span> <span class="n">ghcr</span><span class="o">.</span><span class="n">io</span><span class="o">/</span><span class="n">ledgerhq</span><span class="o">/</span><span class="n">speculos</span><span class="o">-</span><span class="n">builder</span><span class="o">-</span><span class="n">aarch64</span><span class="p">:</span><span class="n">latest</span> <span class="n">AS</span> <span class="n">builder</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">FROM</span> <span class="n">ghcr</span><span class="o">.</span><span class="n">io</span><span class="o">/</span><span class="n">blooo</span><span class="o">-</span><span class="n">io</span><span class="o">/</span><span class="n">speculos</span><span class="o">-</span><span class="n">builder</span><span class="o">-</span><span class="n">aarch64</span><span class="p">:</span><span class="n">latest</span> <span class="n">AS</span> <span class="n">builder</span>
 </pre></div>
 </div>
 <p>Then build the Docker container image with the following command:</p>

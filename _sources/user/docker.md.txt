@@ -2,11 +2,11 @@
 
 ## How to use the Docker image
 
-A docker image is available on [GitHub Packages](https://ghcr.io/ledgerhq/speculos). Pull the latest image:
+A docker image is available on [GitHub Packages](https://ghcr.io/blooo-io/speculos). Pull the latest image:
 
 ```shell
-docker pull ghcr.io/ledgerhq/speculos
-docker image tag ghcr.io/ledgerhq/speculos speculos
+docker pull ghcr.io/blooo-io/speculos
+docker image tag ghcr.io/blooo-io/speculos speculos
 ```
 
 And run the image with a few arguments from the root of the speculos project:

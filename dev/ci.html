@@ -90,16 +90,16 @@
 <h2>Speculos builder<a class="headerlink" href="#speculos-builder" title="Permalink to this heading"></a></h2>
 <p>The Dockerfile <code class="docutils literal notranslate"><span class="pre">build.Dockerfile</span></code> builds a container with all required
 dependencies to build speculos:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>build<span class="w"> </span>-f<span class="w"> </span>build.Dockerfile<span class="w"> </span>-t<span class="w"> </span>ghcr.io/ledgerhq/speculos-builder<span class="w"> </span>.
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>build<span class="w"> </span>-f<span class="w"> </span>build.Dockerfile<span class="w"> </span>-t<span class="w"> </span>ghcr.io/blooo-io/speculos-builder<span class="w"> </span>.
 </pre></div>
 </div>
 <p>The resulting container is pushed on
-<a class="reference external" href="https://ghcr.io/ledgerhq/speculos-builder">GitHub Packages</a> by the CI and
+<a class="reference external" href="https://ghcr.io/blooo-io/speculos-builder">GitHub Packages</a> by the CI and
 can eventually be used by the CI itself.</p>
 <p>The image can also be pushed manually with appropriate credentials:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>push<span class="w"> </span>ghcr.io/ledgerhq/speculos-builder:latest
-docker<span class="w"> </span>image<span class="w"> </span>tag<span class="w"> </span>ghcr.io/ledgerhq/speculos-builder:latest<span class="w"> </span>ghcr.io/ledgerhq/speculos-builder:<span class="k">$(</span>git<span class="w"> </span>rev-parse<span class="w"> </span>--short<span class="w"> </span>HEAD<span class="k">)</span>
-docker<span class="w"> </span>push<span class="w"> </span>ghcr.io/ledgerhq/speculos-builder:<span class="k">$(</span>git<span class="w"> </span>rev-parse<span class="w"> </span>--short<span class="w"> </span>HEAD<span class="k">)</span>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>push<span class="w"> </span>ghcr.io/blooo-io/speculos-builder:latest
+docker<span class="w"> </span>image<span class="w"> </span>tag<span class="w"> </span>ghcr.io/blooo-io/speculos-builder:latest<span class="w"> </span>ghcr.io/blooo-io/speculos-builder:<span class="k">$(</span>git<span class="w"> </span>rev-parse<span class="w"> </span>--short<span class="w"> </span>HEAD<span class="k">)</span>
+docker<span class="w"> </span>push<span class="w"> </span>ghcr.io/blooo-io/speculos-builder:<span class="k">$(</span>git<span class="w"> </span>rev-parse<span class="w"> </span>--short<span class="w"> </span>HEAD<span class="k">)</span>
 </pre></div>
 </div>
 </section>
@@ -107,11 +107,11 @@ docker<span class="w"> </span>push<span class="w"> </span>ghcr.io/ledgerhq/specu
 <h2>Speculos<a class="headerlink" href="#speculos" title="Permalink to this heading"></a></h2>
 <p>The Dockerfile <code class="docutils literal notranslate"><span class="pre">Dockerfile</span></code> builds a container with all required dependencies to
 run speculos from the command-line:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>build<span class="w"> </span>-f<span class="w"> </span>Dockerfile<span class="w"> </span>-t<span class="w"> </span>ghcr.io/ledgerhq/speculos<span class="w"> </span>.
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>build<span class="w"> </span>-f<span class="w"> </span>Dockerfile<span class="w"> </span>-t<span class="w"> </span>ghcr.io/blooo-io/speculos<span class="w"> </span>.
 </pre></div>
 </div>
 <p>This should be done by the CI, which publish the resulting image on
-<a class="reference external" href="https://ghcr.io/ledgerhq/speculos">GitHub Packages</a>.</p>
+<a class="reference external" href="https://ghcr.io/blooo-io/speculos">GitHub Packages</a>.</p>
 </section>
 </section>
 
