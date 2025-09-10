@@ -39,7 +39,7 @@ jobs:
       uses: docker/build-push-action@v4
       with:
         push: false
-        tags: ledgerhq/speculos:test
+        tags: blooo-io/speculos:test
         context: .
         outputs: type=docker,dest=/tmp/speculos_image.tar
     - name: Upload artifact
@@ -68,7 +68,7 @@ jobs:
     - name: Clone
       uses: actions/checkout@v4
       with:
-          repository: ledgerHQ/speculos
+          repository: blooo-io/speculos
           ref: ${{ inputs.speculos_app_branch_name }}
           submodules: recursive
           fetch-depth: 0
@@ -125,7 +125,7 @@ jobs:
       if: ${{ env.SDK == 'c' }}
       uses: addnab/docker-run-action@v3
       with:
-        image: ledgerhq/speculos:test
+        image: blooo-io/speculos:test
         options: -v ${{ github.workspace }}/app:/app
         run: |
             apt-get update && apt-get install -y gcc
@@ -136,7 +136,7 @@ jobs:
       if: ${{ env.SDK == 'rust' }}
       uses: addnab/docker-run-action@v3
       with:
-        image: ledgerhq/speculos:test
+        image: blooo-io/speculos:test
         options: -v ${{ github.workspace }}/app:/app
         run: |
             apt-get update && apt-get install -y gcc && apt-get install -y cargo

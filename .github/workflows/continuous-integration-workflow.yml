@@ -23,7 +23,7 @@ jobs:
     name: Code coverage
     runs-on: ubuntu-latest
     container:
-      image: docker://ghcr.io/ledgerhq/speculos-builder:latest
+      image: docker://ghcr.io/blooo-io/speculos-builder:latest
     steps:
     - name: Clone
       uses: actions/checkout@v4
@@ -59,7 +59,7 @@ jobs:
     # Use https://ghcr.io/ledgerhq/speculos-builder which has all the required
     # dependencies
     container:
-      image: docker://ghcr.io/ledgerhq/speculos-builder:latest
+      image: docker://ghcr.io/blooo-io/speculos-builder:latest
 
     steps:
     - name: Clone
@@ -240,7 +240,7 @@ jobs:
       id: meta
       uses: docker/metadata-action@v4
       with:
-        images: ghcr.io/ledgerhq/speculos
+        images: ghcr.io/blooo-io/speculos
         tags: |
           type=raw,value=${{ github.sha }}
           type=ref,event=branch
