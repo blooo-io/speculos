@@ -70,7 +70,7 @@ jobs:
         with:
           file: build.Dockerfile
           platforms: ${{ matrix.platform }}
-          outputs: type=image,name=ghcr.io/ledgerhq/speculos-builder,push-by-digest=true,name-canonical=true,push=${{ env.PUSH_FLAG }}
+          outputs: type=image,name=ghcr.io/blooo-io/speculos-builder,push-by-digest=true,name-canonical=true,push=${{ env.PUSH_FLAG }}
 
       - name: Export digest
         run: |
@@ -112,8 +112,8 @@ jobs:
       - name: Create manifest list and push
         working-directory: /tmp/digests
         run: |
-          docker buildx imagetools create --tag ghcr.io/ledgerhq/speculos-builder:latest  $(printf 'ghcr.io/ledgerhq/speculos-builder@sha256:%s ' *)
+          docker buildx imagetools create --tag ghcr.io/blooo-io/speculos-builder:latest  $(printf 'ghcr.io/blooo-io/speculos-builder@sha256:%s ' *)
 
       - name: Inspect image
         run: |
-          docker buildx imagetools inspect ghcr.io/ledgerhq/speculos-builder:latest
+          docker buildx imagetools inspect ghcr.io/blooo-io/speculos-builder:latest
